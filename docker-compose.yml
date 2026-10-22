@@ -1,0 +1,35 @@
+services:
+  auth-db:
+    image: mysql:8.4
+    env_file: ./backend/auth-service/.env
+    volumes:
+      - auth-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  auth-service-1:
+    build: ./backend/auth-service
+    env_file: ./backend/auth-service/.env
+    ports:
+      - "4001:4001"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: ./frontend/.env
+        required: false
+    depends_on:
+      - auth-service-1
+    restart: unless-stopped
+
+volumes:
+  auth-db-data:
